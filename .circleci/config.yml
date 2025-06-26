@@ -1,15 +1,59 @@
 version: 2.1
 
-jobs:
-  test-hello:
+executors:
+  docker-executor:
     docker:
-      - image: cimg/ruby:3.1
+      - image: cimg/base:stable
+    working_directory: ~/app
+
+jobs:
+  build-and-run:
+    executor: docker-executor
     steps:
       - checkout
-      - run: echo "Hello, CircleCI!"
+
+      - setup_remote_docker:
+          docker_layer_caching: true
+
+      - run:
+          name: Build PostgreSQL Image
+          command: |
+            docker build -t my-postgres-db -f Dockerfile.db .
+
+      - run:
+          name: Build Rails App Image
+          command: |
+            docker build -t my-rails-app -f Dockerfile.app .
+
+      - run:
+          name: Create Docker Network
+          command: |
+            docker network create myapp-network
+
+      - run:
+          name: Start PostgreSQL Container
+          command: |
+            docker run -d --name postgres-db --network myapp-network my-postgres-db
+
+      - run:
+          name: Start Rails App Container
+          command: |
+            docker run -d \
+              --name rails-app \
+              --network myapp-network \
+              -p 3000:3000 \
+              -e DB_HOST=postgres-db \
+              my-rails-app
+
+      - run:
+          name: Wait for app to boot (optional)
+          command: |
+            sleep 15  # Optional: allow time for DB and Rails app to start
+
+      # Optional: Add test step here if you want
 
 workflows:
   version: 2
-  test:
+  build-and-run:
     jobs:
-      - test-hello
+      - build-and-run
