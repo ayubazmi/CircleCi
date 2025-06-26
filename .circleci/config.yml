@@ -39,14 +39,13 @@ jobs:
             docker push $DOCKERHUB_USERNAME/my-rails-app:${CIRCLE_BUILD_NUM}
 
       - run:
-          name: Update image tags in Kubernetes YAML
+          name: Update image tags in Kubernetes YAML and push to GitHub
           command: |
             git config --global user.name "$GIT_USER_NAME"
             git config --global user.email "$GIT_USER_EMAIL"
-            git clone https://$GITHUB_TOKEN@github.com/your-username/your-repo.git updated-yamls
+            git clone https://$GITHUB_TOKEN@github.com/ayubazmi/Ruby-Rail-Private.git updated-yamls
             cd updated-yamls
 
-            # Update lines like: image: ayubazmi/my-rails-app:xxx
             sed -i "s|\(image: $DOCKERHUB_USERNAME/my-rails-app:\).*|\1${CIRCLE_BUILD_NUM}|" k8s/rails-deployment.yaml
             sed -i "s|\(image: $DOCKERHUB_USERNAME/my-postgres-db:\).*|\1${CIRCLE_BUILD_NUM}|" k8s/postgres-deployment.yaml
 
