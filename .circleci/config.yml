@@ -1,7 +1,5 @@
-version: 2.1
-
 jobs:
-  build:
+  build-and-push:
     docker:
       - image: cimg/base:stable
     working_directory: ~/app
@@ -10,69 +8,29 @@ jobs:
       - setup_remote_docker:
           docker_layer_caching: true
       - run:
-          name: Build Docker Images
+          name: Login to DockerHub
+          command: |
+            echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+      - run:
+          name: Build & Tag Images
           command: |
             docker build -t my-postgres-db -f Dockerfile.db .
             docker tag my-postgres-db $DOCKERHUB_USERNAME/my-postgres-db:${CIRCLE_BUILD_NUM}
             docker build -t my-rails-app -f Dockerfile.app .
             docker tag my-rails-app $DOCKERHUB_USERNAME/my-rails-app:${CIRCLE_BUILD_NUM}
-
-  push:
-    docker:
-      - image: cimg/base:stable
-    steps:
-      - setup_remote_docker
       - run:
-          name: Log in to Docker Hub and Push Images
+          name: Push Images
           command: |
-            echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
             docker push $DOCKERHUB_USERNAME/my-postgres-db:${CIRCLE_BUILD_NUM}
             docker push $DOCKERHUB_USERNAME/my-rails-app:${CIRCLE_BUILD_NUM}
-
-  update-k8s-yaml:
-    docker:
-      - image: cimg/base:stable
-    steps:
-      - run:
-          name: Update Kubernetes YAMLs and Push to GitHub
-          command: |
-            git config --global user.name "$GIT_USER_NAME"
-            git config --global user.email "$GIT_USER_EMAIL"
-            git clone https://$GITHUB_TOKEN@github.com/ayubazmi/Ruby-Rail-Private.git updated-yamls
-            cd updated-yamls
-            sed -i "s|\(image: $DOCKERHUB_USERNAME/my-rails-app:\).*|\1${CIRCLE_BUILD_NUM}|" k8s/rails-deployment.yaml
-            sed -i "s|\(image: $DOCKERHUB_USERNAME/my-postgres-db:\).*|\1${CIRCLE_BUILD_NUM}|" k8s/postgres-deployment.yaml
-            git add k8s/*.yaml
-            git commit -m "Update image tags to build ${CIRCLE_BUILD_NUM}"
-            git push origin main
-
-  deploy:
-    docker:
-      - image: cimg/base:stable
-    steps:
-      - setup_remote_docker
-      - run:
-          name: Run Containers Locally
-          command: |
-            docker network create myapp-network
-            docker run -d --name postgres-db --network myapp-network $DOCKERHUB_USERNAME/my-postgres-db:${CIRCLE_BUILD_NUM}
-            docker run -d --name rails-app --network myapp-network -p 3000:3000 -e DB_HOST=postgres-db $DOCKERHUB_USERNAME/my-rails-app:${CIRCLE_BUILD_NUM}
-            sleep 60  # Give time to test manually, if needed
-            docker stop rails-app postgres-db
-            docker rm rails-app postgres-db
-            docker network rm myapp-network
-
 workflows:
   version: 2
   deploy_pipeline:
     jobs:
-      - build
-      - push:
-          requires:
-            - build
+      - build-and-push
       - update-k8s-yaml:
           requires:
-            - push
+            - build-and-push
       - deploy:
           requires:
             - update-k8s-yaml
