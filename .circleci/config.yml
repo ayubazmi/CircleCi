@@ -39,9 +39,24 @@ jobs:
             docker push $DOCKERHUB_USERNAME/my-rails-app:${CIRCLE_BUILD_NUM}
 
       - run:
-          name: Create Docker Network
+          name: Update image tags in Kubernetes YAML
           command: |
-            docker network create myapp-network
+            git config --global user.name "$GIT_USER_NAME"
+            git config --global user.email "$GIT_USER_EMAIL"
+            git clone https://$GITHUB_TOKEN@github.com/your-username/your-repo.git updated-yamls
+            cd updated-yamls
+
+            # Update lines like: image: ayubazmi/my-rails-app:xxx
+            sed -i "s|\(image: $DOCKERHUB_USERNAME/my-rails-app:\).*|\1${CIRCLE_BUILD_NUM}|" k8s/rails-deployment.yaml
+            sed -i "s|\(image: $DOCKERHUB_USERNAME/my-postgres-db:\).*|\1${CIRCLE_BUILD_NUM}|" k8s/postgres-deployment.yaml
+
+            git add k8s/*.yaml
+            git commit -m "Update image tags to build ${CIRCLE_BUILD_NUM}"
+            git push origin main
+
+      - run:
+          name: Create Docker Network
+          command: docker network create myapp-network
 
       - run:
           name: Start PostgreSQL Container
@@ -59,9 +74,8 @@ jobs:
               $DOCKERHUB_USERNAME/my-rails-app:${CIRCLE_BUILD_NUM}
 
       - run:
-          name: Wait for app to boot (optional)
-          command: |
-            sleep 15
+          name: Wait for app to boot
+          command: sleep 15
 
 workflows:
   version: 2
