@@ -1,0 +1,15 @@
+version: 2.1
+
+jobs:
+  test-hello:
+    docker:
+      - image: cimg/ruby:3.1
+    steps:
+      - checkout
+      - run: echo "Hello, CircleCI!"
+
+workflows:
+  version: 2
+  test:
+    jobs:
+      - test-hello
