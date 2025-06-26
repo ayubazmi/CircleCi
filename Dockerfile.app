@@ -1,18 +1,23 @@
 FROM ruby:3.1.2
 
+# Install system dependencies
 RUN apt-get update -qq && \
     apt-get install -y curl gnupg2 postgresql-client && \
     curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
     apt-get install -y nodejs && \
-    npm install -g yarn
+    npm install -g yarn && \
+    npm install -g sass  # ✅ Install sass globally
 
 WORKDIR /app
 
+# Copy Gemfiles and install Ruby gems
 COPY Gemfile Gemfile.lock ./
 RUN gem install bundler && bundle install
 
+# Copy the rest of the code
 COPY . .
 
+# Install JavaScript dependencies and precompile assets
 RUN yarn install
 RUN bundle exec rake assets:precompile
 
