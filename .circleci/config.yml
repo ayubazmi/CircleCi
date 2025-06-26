@@ -1,6 +1,13 @@
 version: 2.1
 
 jobs:
+  checkout-code:
+    docker:
+      - image: cimg/base:stable
+    working_directory: ~/app
+    steps:
+      - checkout
+
   build-and-push:
     docker:
       - image: cimg/base:stable
@@ -33,7 +40,9 @@ jobs:
   update-k8s-yaml:
     docker:
       - image: cimg/base:stable
+    working_directory: ~/app
     steps:
+      - checkout
       - run:
           name: Clone & Update Kubernetes YAMLs
           command: |
@@ -53,7 +62,10 @@ workflows:
   version: 2
   deploy_pipeline:
     jobs:
-      - build-and-push
+      - checkout-code
+      - build-and-push:
+          requires:
+            - checkout-code
       - update-k8s-yaml:
           requires:
             - build-and-push
