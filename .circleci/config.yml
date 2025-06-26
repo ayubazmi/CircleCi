@@ -46,11 +46,28 @@ jobs:
               my-rails-app
 
       - run:
-          name: Wait for app to boot (optional)
+          name: Wait for app to boot
           command: |
-            sleep 15  # Optional: allow time for DB and Rails app to start
+            echo "Waiting 20s for app to start..."
+            sleep 20
 
-      # Optional: Add test step here if you want
+      - run:
+          name: Check if app is running on port 3000
+          command: |
+            docker exec rails-app curl -s http://localhost:3000 || echo "App did not respond"
+
+      - run:
+          name: Keep app running for 1 minute for testing
+          command: |
+            echo "App is running. Sleeping for 60s to allow manual/auto tests..."
+            sleep 60
+
+      - run:
+          name: Stop and remove containers
+          command: |
+            docker stop rails-app postgres-db
+            docker rm rails-app postgres-db
+            docker network rm myapp-network
 
 workflows:
   version: 2
