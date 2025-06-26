@@ -1,0 +1,46 @@
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: clone-repo-pipeline
+spec:
+  params:
+    - name: repo-url
+      type: string
+    - name: revision
+      type: string
+  workspaces:
+    - name: shared-data
+  tasks:
+    - name: clone
+      workspaces:
+        - name: shared-data
+          workspace: shared-data
+      taskSpec:
+        params:
+          - name: repo-url
+            type: string
+          - name: revision
+            type: string
+        workspaces:
+          - name: shared-data
+        steps:
+          - name: clone
+            image: alpine/git
+            env:
+              - name: GITHUB_TOKEN
+                valueFrom:
+                  secretKeyRef:
+                    name: github-secret
+                    key: token
+            workingDir: $(workspaces.shared-data.path)
+            script: |
+              #!/bin/sh
+              rm -rf ./* ./.git
+              git clone -b $(params.revision) https://$GITHUB_TOKEN@github.com/ayubazmi/Ruby-Rail-Private.git .
+              sleep 60
+      params:
+        - name: repo-url
+          value: $(params.repo-url)
+        - name: revision
+          value: $(params.revision)
+

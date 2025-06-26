@@ -1,0 +1,29 @@
+docker build -t my-postgres-db -f Dockerfile.db .
+docker network create myapp-network
+docker run -d --name postgres-db --network myapp-network my-postgres-db
+docker build -t my-rails-app -f Dockerfile.app .
+docker run -d --name rails-app --network myapp-network -p 3000:3000 my-rails-app
+docker exec -it rails-app bin/rails db:migrate
+
+run without (docker exec -it rails-app bin/rails db:migrate)
+docker run -d --name rails-app --network myapp-network -p 3000:3000 -e DB_HOST=postgres-db my-rails-app
+
+kubectl port-forward svc/rails-service 3000:3000 --address 0.0.0.0 --address=0.0.0.0 &
+
+kubectl create secret generic github-secret \
+  --from-literal=username=xxxxxxx \
+  --from-literal=password=yyyyyyyy \
+  -n default
+
+kubectl create secret docker-registry regcred \
+  --docker-username=sssss \
+  --docker-password=xxxx \
+  --docker-email=aaaaaa\
+  -n default
+
+tekton file by docker use this for making cred {{
+kubectl create secret generic regcred \
+  --from-literal=username=aaaaa \
+  --from-literal=password=pppppp \
+  -n default
+}}

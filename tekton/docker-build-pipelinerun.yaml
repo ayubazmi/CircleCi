@@ -1,0 +1,17 @@
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  name: docker-build-run
+spec:
+  pipelineRef:
+    name: docker-build-pipeline
+  params:
+    - name: image-app
+      value: docker.io/ayubazmi/rail-repo-private:app-latest
+    - name: image-db
+      value: docker.io/ayubazmi/rail-repo-private:db-latest
+  workspaces:
+    - name: shared-data
+      persistentVolumeClaim:
+        claimName: shared-data-pvc
+

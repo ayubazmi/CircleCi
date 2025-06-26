@@ -1,0 +1,85 @@
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: docker-build-pipeline
+spec:
+  params:
+    - name: image-app
+      type: string
+    - name: image-db
+      type: string
+  workspaces:
+    - name: shared-data
+  tasks:
+    - name: build-push-app
+      taskSpec:
+        params:
+          - name: image
+            type: string
+        workspaces:
+          - name: source
+        steps:
+          - name: build-and-push-app
+            image: gcr.io/kaniko-project/executor:latest
+            workingDir: $(workspaces.source.path)
+            args:
+              - --dockerfile=Dockerfile.app
+              - --destination=$(params.image)
+              - --context=$(workspaces.source.path)
+              - --insecure
+              - --insecure-pull
+              - --skip-tls-verify
+            volumeMounts:
+              - name: docker-config
+                mountPath: /kaniko/.docker
+        volumes:
+          - name: docker-config
+            secret:
+              secretName: regcred
+              items:
+                - key: .dockerconfigjson
+                  path: config.json
+      params:
+        - name: image
+          value: $(params.image-app)
+      workspaces:
+        - name: source
+          workspace: shared-data
+
+    - name: build-push-db
+      runAfter:
+        - build-push-app
+      taskSpec:
+        params:
+          - name: image
+            type: string
+        workspaces:
+          - name: source
+        steps:
+          - name: build-and-push-db
+            image: gcr.io/kaniko-project/executor:latest
+            workingDir: $(workspaces.source.path)
+            args:
+              - --dockerfile=Dockerfile.db
+              - --destination=$(params.image)
+              - --context=$(workspaces.source.path)
+              - --insecure
+              - --insecure-pull
+              - --skip-tls-verify
+            volumeMounts:
+              - name: docker-config
+                mountPath: /kaniko/.docker
+        volumes:
+          - name: docker-config
+            secret:
+              secretName: regcred
+              items:
+                - key: .dockerconfigjson
+                  path: config.json
+      params:
+        - name: image
+          value: $(params.image-db)
+      workspaces:
+        - name: source
+          workspace: shared-data
+

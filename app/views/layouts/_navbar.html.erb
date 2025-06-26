@@ -1,0 +1,14 @@
+<header class="navbar">
+  <% if user_signed_in? %>
+    <div class="navbar__brand">
+      <%= link_to current_user.name, edit_user_registration_path %>
+    </div>
+    <div class="navbar__action">
+      <%= link_to "Sign out", destroy_user_session_path, method: :delete, data: { turbo_method: :delete }, class: "btn btn--dark" %>
+    </div>
+  <% else %>
+    <%= link_to "Sign in",
+                new_user_session_path,
+                class: "btn btn--dark navbar__right" %>
+  <% end %>
+</header>

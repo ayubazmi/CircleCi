@@ -1,0 +1,22 @@
+<div class="filter">
+  <div>
+    <%= "#{current_user.total_tasks} tasks left" %>
+  </div>
+
+  <div>
+    <ul class="filter__actions">
+      <li> <%= link_to "All", tasks_path, class: ("filter__active" if params[:status].blank?) %>
+      </li>
+
+      <li> <%= link_to "Active", tasks_path(status: "active"), class: ("filter__active" if params[:status] == "active") %>
+      </li>
+
+      <li> <%= link_to "Completed", tasks_path(status: "completed"), class: ("filter__active" if params[:status] == "completed") %>
+      </li>
+    </ul>
+  </div>
+
+  <div class="filter__clear">
+    <%= link_to "Clear Completed", clear_completed_tasks_path, method: :get %>
+  </div>
+</div>

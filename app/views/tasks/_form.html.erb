@@ -1,0 +1,12 @@
+<%= simple_form_for task, html: { class: "task form" } do |f| %>
+
+<% if task.errors.any? %>
+  <div class="error-message">
+    <%= task.errors.full_messages.to_sentence.capitalize %>
+  </div>
+<% end %>
+
+<%= f.input :name, input_html: { autofocus: true } %>
+<%= link_to "Cancel", tasks_path, class: "btn btn--light" %>
+<%= f.submit class: "btn btn--secondary" %>
+<% end %>

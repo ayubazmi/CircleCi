@@ -1,0 +1,11 @@
+<main class="container">
+  <%= link_to "Back", tasks_path %>
+
+  <div class="header">
+    <h1> New Task </h1>
+  </div>
+
+  <%= turbo_frame_tag @task do %>
+    <%= render "form", task: @task %>
+  <% end %>
+</main>
