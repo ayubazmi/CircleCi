@@ -61,7 +61,7 @@ jobs:
             git add k8s/*.yaml
             git commit -m "Update image tags to build $TAG [ci skip]"
             git push origin main
-
+#gta
 workflows:
   version: 2
   deploy_pipeline:
