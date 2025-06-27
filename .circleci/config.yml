@@ -1,5 +1,10 @@
 version: 2.1
 
+parameters:
+  build_tag:
+    type: string
+    default: ""
+
 jobs:
   checkout-code:
     docker:
@@ -7,25 +12,12 @@ jobs:
     working_directory: ~/app
     steps:
       - checkout
-      - run:
-          name: Generate consistent build tag
-          command: |
-            echo "export BUILD_TAG=${CIRCLE_BUILD_NUM}" > build_tag.env
-      - persist_to_workspace:
-          root: .
-          paths:
-            - build_tag.env
 
   build-and-push:
     docker:
       - image: cimg/base:stable
     working_directory: ~/app
     steps:
-      - attach_workspace:
-          at: .
-      - run:
-          name: Load build tag
-          command: source build_tag.env
       - checkout
       - setup_remote_docker
       - run:
@@ -35,44 +27,39 @@ jobs:
       - run:
           name: Build & Tag Images
           command: |
-            source build_tag.env
+            TAG=${CIRCLE_PIPELINE_ID:0:8}
             docker build -t my-postgres-db -f Dockerfile.db .
-            docker tag my-postgres-db $DOCKERHUB_USERNAME/my-postgres-db:$BUILD_TAG
+            docker tag my-postgres-db $DOCKERHUB_USERNAME/my-postgres-db:$TAG
 
             docker build -t my-rails-app -f Dockerfile.app .
-            docker tag my-rails-app $DOCKERHUB_USERNAME/my-rails-app:$BUILD_TAG
+            docker tag my-rails-app $DOCKERHUB_USERNAME/my-rails-app:$TAG
       - run:
           name: Push Images
           command: |
-            source build_tag.env
-            docker push $DOCKERHUB_USERNAME/my-postgres-db:$BUILD_TAG
-            docker push $DOCKERHUB_USERNAME/my-rails-app:$BUILD_TAG
+            TAG=${CIRCLE_PIPELINE_ID:0:8}
+            docker push $DOCKERHUB_USERNAME/my-postgres-db:$TAG
+            docker push $DOCKERHUB_USERNAME/my-rails-app:$TAG
 
   update-k8s-yaml:
     docker:
       - image: cimg/base:stable
     working_directory: ~/app
     steps:
-      - attach_workspace:
-          at: .
-      - run:
-          name: Load build tag
-          command: source build_tag.env
       - checkout
       - run:
           name: Clone & Update Kubernetes YAMLs
           command: |
-            source build_tag.env
             git config --global user.name "$GIT_USER_NAME"
             git config --global user.email "$GIT_USER_EMAIL"
             git clone https://$GITHUB_TOKEN@github.com/ayubazmi/Ruby-Rail-Private.git updated-yamls
             cd updated-yamls
 
-            sed -i "s|\(image: $DOCKERHUB_USERNAME/my-rails-app:\).*|\1$BUILD_TAG|" k8s/rails-deployment.yaml
-            sed -i "s|\(image: $DOCKERHUB_USERNAME/my-postgres-db:\).*|\1$BUILD_TAG|" k8s/postgres-deployment.yaml
+            TAG=${CIRCLE_PIPELINE_ID:0:8}
+            sed -i "s|\(image: $DOCKERHUB_USERNAME/my-rails-app:\).*|\1$TAG|" k8s/rails-deployment.yaml
+            sed -i "s|\(image: $DOCKERHUB_USERNAME/my-postgres-db:\).*|\1$TAG|" k8s/postgres-deployment.yaml
 
             git add k8s/*.yaml
-            git commit -m "Update image tags to build $BUILD_TAG [skip ci]"
+            git commit -m "Update image tags to build $TAG"
             git push origin main
 
 workflows:
