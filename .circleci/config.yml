@@ -16,11 +16,10 @@ jobs:
       - checkout
       - setup_remote_docker:
           docker_layer_caching: true
-
       - run:
-          name: Set Custom Image Tag
+          name: Set Build Timestamp
           command: |
-            echo "TAG=$(date +%Y%m%d%H%M%S)" >> $BASH_ENV
+            echo "export BUILD_TAG=$(date +%Y%m%d%H%M%S)" >> $BASH_ENV
       - run:
           name: Login to DockerHub
           command: |
@@ -28,16 +27,18 @@ jobs:
       - run:
           name: Build & Tag Images
           command: |
+            source $BASH_ENV
             docker build -t my-postgres-db -f Dockerfile.db .
-            docker tag my-postgres-db $DOCKERHUB_USERNAME/my-postgres-db:$TAG
+            docker tag my-postgres-db $DOCKERHUB_USERNAME/my-postgres-db:$BUILD_TAG
 
             docker build -t my-rails-app -f Dockerfile.app .
-            docker tag my-rails-app $DOCKERHUB_USERNAME/my-rails-app:$TAG
+            docker tag my-rails-app $DOCKERHUB_USERNAME/my-rails-app:$BUILD_TAG
       - run:
           name: Push Images
           command: |
-            docker push $DOCKERHUB_USERNAME/my-postgres-db:$TAG
-            docker push $DOCKERHUB_USERNAME/my-rails-app:$TAG
+            source $BASH_ENV
+            docker push $DOCKERHUB_USERNAME/my-postgres-db:$BUILD_TAG
+            docker push $DOCKERHUB_USERNAME/my-rails-app:$BUILD_TAG
 
   update-k8s-yaml:
     docker:
@@ -46,19 +47,23 @@ jobs:
     steps:
       - checkout
       - run:
+          name: Set Build Timestamp
+          command: |
+            echo "export BUILD_TAG=$(date +%Y%m%d%H%M%S)" >> $BASH_ENV
+      - run:
           name: Clone & Update Kubernetes YAMLs
           command: |
-            echo "Using tag: $TAG"
+            source $BASH_ENV
             git config --global user.name "$GIT_USER_NAME"
             git config --global user.email "$GIT_USER_EMAIL"
             git clone https://$GITHUB_TOKEN@github.com/ayubazmi/CircleCi.git updated-yamls
             cd updated-yamls
 
-            sed -i "s|\(image: $DOCKERHUB_USERNAME/my-rails-app:\).*|\1$TAG|" k8s/rails-deployment.yaml
-            sed -i "s|\(image: $DOCKERHUB_USERNAME/my-postgres-db:\).*|\1$TAG|" k8s/postgres-deployment.yaml
+            sed -i "s|\(image: $DOCKERHUB_USERNAME/my-rails-app:\).*|\1$BUILD_TAG|" k8s/rails-deployment.yaml
+            sed -i "s|\(image: $DOCKERHUB_USERNAME/my-postgres-db:\).*|\1$BUILD_TAG|" k8s/postgres-deployment.yaml
 
             git add k8s/*.yaml
-            git commit -m "Update image tags to build $TAG [skip ci]"
+            git commit -m "Update image tags to build $BUILD_TAG [skip ci]"
             git push origin main
 
 workflows:
