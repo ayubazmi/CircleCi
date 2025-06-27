@@ -1,5 +1,10 @@
 version: 2.1
 
+parameters:
+  build_tag:
+    type: string
+    default: ""
+
 jobs:
   checkout-code:
     docker:
@@ -14,8 +19,7 @@ jobs:
     working_directory: ~/app
     steps:
       - checkout
-      - setup_remote_docker:
-          docker_layer_caching: true
+      - setup_remote_docker
       - run:
           name: Login to DockerHub
           command: |
@@ -23,16 +27,18 @@ jobs:
       - run:
           name: Build & Tag Images
           command: |
+            TAG=${CIRCLE_PIPELINE_ID:0:8}
             docker build -t my-postgres-db -f Dockerfile.db .
-            docker tag my-postgres-db $DOCKERHUB_USERNAME/my-postgres-db:${CIRCLE_BUILD_NUM}
+            docker tag my-postgres-db $DOCKERHUB_USERNAME/my-postgres-db:$TAG
 
             docker build -t my-rails-app -f Dockerfile.app .
-            docker tag my-rails-app $DOCKERHUB_USERNAME/my-rails-app:${CIRCLE_BUILD_NUM}
+            docker tag my-rails-app $DOCKERHUB_USERNAME/my-rails-app:$TAG
       - run:
           name: Push Images
           command: |
-            docker push $DOCKERHUB_USERNAME/my-postgres-db:${CIRCLE_BUILD_NUM}
-            docker push $DOCKERHUB_USERNAME/my-rails-app:${CIRCLE_BUILD_NUM}
+            TAG=${CIRCLE_PIPELINE_ID:0:8}
+            docker push $DOCKERHUB_USERNAME/my-postgres-db:$TAG
+            docker push $DOCKERHUB_USERNAME/my-rails-app:$TAG
 
   update-k8s-yaml:
     docker:
@@ -45,15 +51,15 @@ jobs:
           command: |
             git config --global user.name "$GIT_USER_NAME"
             git config --global user.email "$GIT_USER_EMAIL"
-
             git clone https://$GITHUB_TOKEN@github.com/ayubazmi/Ruby-Rail-Private.git updated-yamls
             cd updated-yamls
 
-            sed -i "s|\(image: $DOCKERHUB_USERNAME/my-rails-app:\).*|\1${CIRCLE_BUILD_NUM}|" k8s/rails-deployment.yaml
-            sed -i "s|\(image: $DOCKERHUB_USERNAME/my-postgres-db:\).*|\1${CIRCLE_BUILD_NUM}|" k8s/postgres-deployment.yaml
+            TAG=${CIRCLE_PIPELINE_ID:0:8}
+            sed -i "s|\(image: $DOCKERHUB_USERNAME/my-rails-app:\).*|\1$TAG|" k8s/rails-deployment.yaml
+            sed -i "s|\(image: $DOCKERHUB_USERNAME/my-postgres-db:\).*|\1$TAG|" k8s/postgres-deployment.yaml
 
             git add k8s/*.yaml
-            git commit -m "Update image tags to build ${CIRCLE_BUILD_NUM}"
+            git commit -m "Update image tags to build $TAG"
             git push origin main
 
 workflows:
