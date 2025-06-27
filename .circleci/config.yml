@@ -59,7 +59,7 @@ jobs:
             sed -i "s|\(image: $DOCKERHUB_USERNAME/my-postgres-db:\).*|\1$TAG|" k8s/postgres-deployment.yaml
 
             git add k8s/*.yaml
-            git commit -m "Update image tags to build $TAG"
+            git commit -m "Update image tags to build $TAG [ci skip]"
             git push origin main
 
 workflows:
