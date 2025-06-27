@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: postgres
-          image: ayubazmi/my-postgres-db:407ddd4f
+          image: ayubazmi/my-postgres-db:67ac0cdb
           ports:
             - containerPort: 5432
           env:
