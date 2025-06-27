@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: rails-app
-          image: ayubazmi/my-rails-app:be3d900b
+          image: ayubazmi/my-rails-app:ac4c70cd
           ports:
             - containerPort: 3000
           env:
