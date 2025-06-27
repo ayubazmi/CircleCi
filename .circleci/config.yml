@@ -14,6 +14,7 @@ jobs:
     working_directory: ~/app
     steps:
       - checkout
+
       - setup_remote_docker:
           docker_layer_caching: true
 
@@ -43,19 +44,20 @@ jobs:
     working_directory: ~/app
     steps:
       - checkout
+
       - run:
           name: Clone & Update Kubernetes YAMLs
           command: |
             git config --global user.name "$GIT_USER_NAME"
             git config --global user.email "$GIT_USER_EMAIL"
-            git clone https://$GITHUB_TOKEN@github.com/ayubazmi/Ruby-Rail-Private.git updated-yamls
+            git clone https://$GITHUB_TOKEN@github.com/ayubazmi/CircleCi.git updated-yamls
             cd updated-yamls
 
             sed -i "s|\(image: $DOCKERHUB_USERNAME/my-rails-app:\).*|\1${CIRCLE_BUILD_NUM}|" k8s/rails-deployment.yaml
             sed -i "s|\(image: $DOCKERHUB_USERNAME/my-postgres-db:\).*|\1${CIRCLE_BUILD_NUM}|" k8s/postgres-deployment.yaml
 
             git add k8s/*.yaml
-            git commit -m "Update image tags to build ${CIRCLE_BUILD_NUM}"
+            git commit -m "Update image tags to build ${CIRCLE_BUILD_NUM} [skip ci]"
             git push origin main
 
 workflows:
