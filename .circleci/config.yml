@@ -36,7 +36,7 @@ jobs:
           command: |
             docker push $DOCKERHUB_USERNAME/my-postgres-db:${CIRCLE_BUILD_NUM}
             docker push $DOCKERHUB_USERNAME/my-rails-app:${CIRCLE_BUILD_NUM}
-  
+
   update-k8s-yaml:
     docker:
       - image: cimg/base:stable
