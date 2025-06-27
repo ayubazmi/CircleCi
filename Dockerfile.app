@@ -5,7 +5,7 @@ RUN apt-get update -qq && \
     curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
     apt-get install -y nodejs && \
     npm install -g yarn
-    npm install -g yarn sass
+    RUN npm install -g yarn sass
 
 WORKDIR /app
 
